@@ -47,4 +47,13 @@ inline void write_add(ET *a, ET b) {
 	while (!cas(a, oldV, newV));
 }
 
+template <class ET>
+inline bool write_max(ET* a, ET b) {
+    ET c;
+    bool r = 0;
+    do c = *a;
+    while (c < b && !(r = cas(a, c, b)));
+    return r;
+}
+
 #endif

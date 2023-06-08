@@ -38,7 +38,9 @@ Copyright (c) 2014-2015 Xiaowei Zhu, Tsinghua University
 long PAGESIZE = 4096;
 
 void generate_edge_grid(std::string input, std::string output, VertexId vertices, int partitions, int edge_type) {
-	int parallelism = std::thread::hardware_concurrency();
+	//int parallelism = std::thread::hardware_concurrency();
+	int parallelism = 16;
+	//int parallelism = 1;
 	int edge_unit;
 	EdgeId edges;
 	switch (edge_type) {
@@ -54,7 +56,8 @@ void generate_edge_grid(std::string input, std::string output, VertexId vertices
 		fprintf(stderr, "edge type (%d) is not supported.\n", edge_type);
 		exit(-1);
 	}
-	printf("vertices = %d, edges = %ld\n", vertices, edges);
+	printf("vertices = %d, edges = %d, edge_unit: %d\n", vertices, edges, edge_unit);
+    
 
 	char ** buffers = new char * [parallelism*2];
 	bool * occupied = new bool [parallelism*2];
@@ -109,15 +112,25 @@ void generate_edge_grid(std::string input, std::string output, VertexId vertices
 				for (long pos=0;pos<bytes;pos+=edge_unit) {
 					source = *(VertexId*)(buffer+pos);
 					target = *(VertexId*)(buffer+pos+sizeof(VertexId));
+
 					int i = get_partition_id(vertices, partitions, source);
 					int j = get_partition_id(vertices, partitions, target);
 					local_grid_offset[i*partitions+j] += edge_unit;
+                   // if(pos < 100)
+                    //printf("|sizeof V%d, src: %d, dst: %d, local_grid_offset[%d, %d]: %d,  edfe_unit:  %d, for %d partitions|\n", sizeof(VertexId), source, target, i, j, local_grid_offset[i*partitions+j], edge_unit, partitions);
 				}
 				local_grid_cursor[0] = 0;
 				for (int ij=1;ij<partitions*partitions;ij++) {
 					local_grid_cursor[ij] = local_grid_offset[ij - 1];
 					local_grid_offset[ij] += local_grid_cursor[ij];
+                    //printf("|ij: %d, val: %d|\n", ij, local_grid_offset[ij]);
 				}
+                printf("|%d , %d, bytes: %d|\n", local_grid_offset[partitions*partitions-1], local_grid_offset[partitions*partitions-2], bytes);
+                if(local_grid_offset[partitions * partitions -1 ] != bytes){
+                    continue;
+                    printf("%d, %d, %d\n", partitions, local_grid_offset[partitions*partitions-1], bytes);
+                    bytes = local_grid_offset[partitions * partitions -1];
+                }
 				assert(local_grid_offset[partitions*partitions-1]==bytes);
 				for (long pos=0;pos<bytes;pos+=edge_unit) {
 					source = *(VertexId*)(buffer+pos);
@@ -134,6 +147,7 @@ void generate_edge_grid(std::string input, std::string output, VertexId vertices
 				}
 				int start = 0;
 				for (int ij=0;ij<partitions*partitions;ij++) {
+                    printf("%d, %d\n", local_grid_cursor[ij], local_grid_offset[ij]);
 					assert(local_grid_cursor[ij]==local_grid_offset[ij]);
 					int i = ij / partitions;
 					int j = ij % partitions;

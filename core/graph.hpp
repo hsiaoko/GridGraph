@@ -27,6 +27,7 @@ Copyright (c) 2014-2015 Xiaowei Zhu, Tsinghua University
 
 #include <thread>
 #include <vector>
+#include <functional>
 
 #include "core/constants.hpp"
 #include "core/type.hpp"
@@ -71,7 +72,9 @@ public:
 
 	Graph (std::string path) {
 		PAGESIZE = 4096;
-		parallelism = std::thread::hardware_concurrency();
+		//parallelism = std::thread::hardware_concurrency();
+		parallelism = 16;
+        printf("parallelism: %d\n", parallelism);
 		buffer_pool = new char * [parallelism*1];
 		for (int i=0;i<parallelism*1;i++) {
 			buffer_pool[i] = (char *)memalign(PAGESIZE, IOSIZE);
@@ -110,7 +113,7 @@ public:
 			edge_unit = sizeof(VertexId) * 2 + sizeof(Weight);
 		}
 
-		memory_bytes = 1024l*1024l*1024l*1024l; // assume RAM capacity is very large
+		memory_bytes = 1024l*1024l*1024l*1024l/8; // assume RAM capacity is very large
 		partition_batch = partitions;
 		vertex_data_bytes = 0;
 
@@ -305,6 +308,7 @@ public:
 						std::tie(fin, offset, length) = tasks.pop();
 						if (fin==-1) break;
 						char * buffer = buffer_pool[thread_id];
+                        //printf("thread_id: %d, memory_bytes: %d", thread_id, this->memory_bytes);
 						long bytes = pread(fin, buffer, length, offset);
 						assert(bytes>0);
 						local_read_bytes += bytes;

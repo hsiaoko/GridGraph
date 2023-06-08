@@ -34,47 +34,63 @@ int main(int argc, char ** argv) {
 
 	active_out->fill();
 	VertexId active_vertices = graph.stream_vertices<VertexId>([&](VertexId i){
-		label[i] = i;
+		label[i] = 0;
 		return 1;
 	});
+    for(size_t i=0;i <100; i++){
+        printf("%d, ", label[i]);
+    }
+    printf("\n");
         
 	int iteration = 0;
+    
+    VertexId upper_bound = active_vertices;
+    VertexId inc_upper_bound = 0;
+
 	while (active_vertices!=0) {
+	//while (iteration < 5) {
     //for(size_t i=0;i <33; i++){
     //    printf("%d, \n", label[3063529]);
     //}
 		iteration++;
-		printf("%7d: %d\n", iteration, active_vertices);
-		std::swap(active_in, active_out);
+		printf("%7d: %d, %d\n", iteration, active_vertices, upper_bound);
+        std::swap(active_in, active_out);
 		active_out->clear();
+        //active_in->fill();
 		graph.hint(label);
-		active_vertices = graph.stream_edges<VertexId>([&](Edge & e){
+		active_vertices = 0; 
+        graph.stream_edges<VertexId>([&](Edge & e){
                 //printf("src: %d label: %d -  target%d label:%d\n", e.source, label[e.source], e.target, label[e.target]);
-			if (label[e.source]<label[e.target]) {
-               // printf("CHECK: src: %d label: %d -  target%d label:%d\n", e.source, label[e.source], e.target, label[e.target]);
-
-				if (write_min(&label[e.target], label[e.source])) {
-					active_out->set_bit(e.target);
-					return 1;
-				}
+			if (e.source < e.target && e.source < upper_bound) {
+                    if(label[e.target] == label[e.source]) {
+                        label[e.source] = label[e.target]+1;
+					    active_out->set_bit(e.source);
+                        write_max(&inc_upper_bound, e.source);
+                    }
 			}
 			return 0;
 		}, active_in);
+        active_vertices = active_out->get_num_bit();
+        write_min(&upper_bound, inc_upper_bound);
+        inc_upper_bound = 0;
 	}
 	double end_time = get_time();
 
 	BigVector<VertexId> label_stat(graph.path+"/label_stat", graph.vertices);
 	label_stat.fill(0);
 	graph.stream_vertices<VertexId>([&](VertexId i){
-		write_add(&label_stat[label[i]], 1);
-		return 1;
-	});
+		
+            write_add(&label_stat[label[i]], 1);
+		
+            return 1;
+	
+            });
 	VertexId components = graph.stream_vertices<VertexId>([&](VertexId i){
 		return label_stat[i]!=0;
 	});
 	printf("%d components found in %.2f seconds\n", components, end_time - start_time);
 
-    for(size_t i=0;i <35; i++){
+    for(size_t i=0;i <100; i++){
         printf("%d, ", label[i]);
     }
 	return 0;

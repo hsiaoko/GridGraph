@@ -21,7 +21,6 @@ int main(int argc, char ** argv) {
 		fprintf(stderr, "usage: wcc [path] [memory budget in GB]\n");
 		exit(-1);
 	}
-	double start_time = get_time();
 	std::string path = argv[1];
 	long memory_bytes = (argc>=3)?atol(argv[2])*1024l*1024l*1024l:8l*1024l*1024l*1024l;
 
@@ -34,30 +33,69 @@ int main(int argc, char ** argv) {
 
 	active_out->fill();
 	VertexId active_vertices = graph.stream_vertices<VertexId>([&](VertexId i){
-		label[i] = i;
+		label[i] = graph.vertices;
 		return 1;
 	});
-        
+
+	double start_time = get_time();
 	int iteration = 0;
-	while (active_vertices!=0) {
-    //for(size_t i=0;i <33; i++){
-    //    printf("%d, \n", label[3063529]);
-    //}
+	size_t * offset_per_vertex = (size_t*)malloc(graph.vertices *sizeof(size_t));
+	size_t * label_for_each_vertex = (size_t*)malloc(graph.vertices *sizeof(size_t));
+	memset(offset_per_vertex, 0,sizeof(size_t) * graph.vertices);
+	memset(offset_per_vertex, 1,sizeof(size_t) * graph.vertices);
+	while (iteration < 8) {
+
 		iteration++;
 		printf("%7d: %d\n", iteration, active_vertices);
 		std::swap(active_in, active_out);
 		active_out->clear();
 		graph.hint(label);
 		active_vertices = graph.stream_edges<VertexId>([&](Edge & e){
-                //printf("src: %d label: %d -  target%d label:%d\n", e.source, label[e.source], e.target, label[e.target]);
-			if (label[e.source]<label[e.target]) {
-               // printf("CHECK: src: %d label: %d -  target%d label:%d\n", e.source, label[e.source], e.target, label[e.target]);
+				if(iteration == 1){
+					if(e.source %25 == 0)
+					{
+						//if(write_min(label_for_each_vertex + e.source, (size_t)0))
+						if (write_min(&label[e.source], 0)) {
+							active_out->set_bit(e.source);
+							return 1;
+						}
+						//if (label[e.source] != label[e.target]) {
+						//if (write_min(&label[e.target], label[e.source])) {
+						//active_out->set_bit(e.target);
+						//active_out->set_bit(e.source);
+						//return 1;
+						//}
+						}
+					} else if(iteration > 1){
+						if (label[e.source]<label[e.target]) {
+							if (write_min(&label[e.target], label[e.source])) {
+								active_out->set_bit(e.target);
+								return 1;
+							}
 
-				if (write_min(&label[e.target], label[e.source])) {
-					active_out->set_bit(e.target);
-					return 1;
+						}
+			  		//auto walks = __sync_add_and_fetch(offset_per_vertex + e.source, (size_t)1);
+					//if(walks < 100){
+						//if (label[e.source] != label[e.target]) {
+					//	if (write_min(&label[e.target], label[e.source])) {
+					//	active_out->set_bit(e.target);
+					//	return 1;
+					//	}
+						//}
+					//if(write_min(label_for_each_vertex + e.source, (size_t)1))
+					
+						//active_out->set_bit(e.target);
+					//}
+					//else{
+					//}
+		
 				}
-			}
+			//if (label[e.source]<label[e.target]) {
+			//	if (write_min(&label[e.target], label[e.source])) {
+			//		active_out->set_bit(e.target);
+			//		return 1;
+			//	}
+			//}
 			return 0;
 		}, active_in);
 	}
@@ -74,8 +112,5 @@ int main(int argc, char ** argv) {
 	});
 	printf("%d components found in %.2f seconds\n", components, end_time - start_time);
 
-    for(size_t i=0;i <35; i++){
-        printf("%d, ", label[i]);
-    }
 	return 0;
 }

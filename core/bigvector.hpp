@@ -1,12 +1,9 @@
 /*
 Copyright (c) 2014-2015 Xiaowei Zhu, Tsinghua University
-
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
-
        http://www.apache.org/licenses/LICENSE-2.0
-
    Unless required by applicable law or agreed to in writing, software
    distributed under the License is distributed on an "AS IS" BASIS,
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -102,7 +99,8 @@ public:
 		assert(ret==0);
 	}
 	void fill(const T & value) {
-		int parallelism = std::thread::hardware_concurrency();
+		//int parallelism = std::thread::hardware_concurrency();
+		int parallelism = 16;
 		#pragma omp parallel num_threads(parallelism)
 		{
 			size_t begin_i, end_i;
@@ -128,7 +126,8 @@ public:
 		assert(msync(data, sizeof(T) * length, MS_SYNC)==0);
 	}
 	void lock(size_t begin_i, size_t end_i) {
-		assert(mlock(data + begin_i, (end_i - begin_i) * sizeof(T))==0);
+        printf("begin_i: %d, end_i: %d \n", begin_i, end_i);
+		//assert(mlock(data + begin_i, (end_i - begin_i) * sizeof(T))==0);
 	}
 	void unlock(size_t begin_i, size_t end_i) {
 		assert(munlock(data + begin_i, (end_i - begin_i) * sizeof(T))==0);

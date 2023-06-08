@@ -61,6 +61,13 @@ public:
 	void set_bit(size_t i) {
 		__sync_fetch_and_or(data+WORD_OFFSET(i), 1ul<<BIT_OFFSET(i));
 	}
+
+    size_t get_num_bit() {
+        size_t count = 0;
+        for (size_t i = 0; i < size; i++)
+            if (get_bit(i)) count++;
+        return count;
+    }
 };
 
 #endif
