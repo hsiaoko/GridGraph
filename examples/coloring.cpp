@@ -85,10 +85,10 @@ int main(int argc, char ** argv) {
             return 1;
 	
             });
-	VertexId components = graph.stream_vertices<VertexId>([&](VertexId i){
+	VertexId colors = graph.stream_vertices<VertexId>([&](VertexId i){
 		return label_stat[i]!=0;
 	});
-	printf("%d components found in %.2f seconds\n", components, end_time - start_time);
+	printf("%d colors found in %.2f seconds\n", colors, end_time - start_time);
 
     for(size_t i=0;i <100; i++){
         printf("%d, ", label[i]);
